@@ -11,6 +11,7 @@
 {{- set $opts "fixEmptyArrays" (ternary (in .Opts.fixEmptyArrays "" "true") true false) -}}
 {{- set $opts "errorStackTrace" (ternary (in .Opts.errorStackTrace "" "true") true false) -}}
 {{- set $opts "legacyErrors" (ternary (in .Opts.legacyErrors "" "true") true false) -}}
+{{- set $opts "tqk" (ternary (in .Opts.tqk "" "true") true false) -}}
 
 {{- $typePrefix := (last (split "/" $opts.importTypesFrom)) -}}
 {{- if ne $typePrefix "" -}}
@@ -108,6 +109,14 @@ func WebRPCSchemaHash() string {
 
 {{ if $opts.client }}
 {{ template "client" dict "Services" .Services "TypeMap" $typeMap "Opts" $opts "TypePrefix" $typePrefix }}
+{{ end -}}
+
+{{ if $opts.tqk }}
+{{ template "tqk" dict
+    "Services" .Services
+    "TypeMap" $typeMap
+    "TypePrefix" $typePrefix
+}}
 {{ end -}}
 
 {{ template "helpers" dict "Opts" $opts }}

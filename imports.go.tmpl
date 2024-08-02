@@ -67,6 +67,10 @@ import (
 {{- /* Print custom type imports. */ -}}
 {{- $imports := dict -}}
 
+{{- if $opts.tqk }}
+	{{- set $imports "gitlab.com/kingbasura/zrpc/tq" "" }}
+{{- end -}}
+
 {{- if eq $opts.json "stdlib" -}}
 	{{- /* Already imported in the stdlib section. */ -}}
 {{- else if eq $opts.json "jsoniter" -}}

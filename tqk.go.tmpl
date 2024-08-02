@@ -1,0 +1,143 @@
+{{- define "inc"}}{{ len (printf "%*s " . "") }}{{ end -}}
+
+{{- define "tqk"}}
+    {{- $services := .Services -}}
+    {{- $typeMap := .TypeMap -}}
+    {{- $typePrefix := .TypePrefix -}}
+
+    {{- if $services -}}
+
+
+        // TQK
+
+        func TqkExchange[T any](tqk tq.TanstackQueryKey[T]) meshmill.Exchange {
+        rv := meshmill.BuildingExchange{Zone: meshmill.TqkZone, Addr: tqk.Verb, Args: tqk.Values()}.Exchange()
+        return rv
+        }
+
+        {{- range $_, $service := $services}}
+            {{- range $_, $method := $service.Methods}}
+                {{- if gt (len $method.Inputs) 0 }}
+                    {{- $lix := lastIndex $method.Inputs }}
+                    {{- $lastInput := index $method.Inputs $lix }}
+                    {{- if eq "watch" $lastInput.Name }}
+                        const {{$method.Name}}Verb = "{{$method.Name}}"
+
+                        type {{$method.Name}}Args struct {
+                        {{- range $i, $input := $method.Inputs }}
+                            {{- if not (eq $input.Name "watch" "during")}}
+                                {{template "field" dict
+                                "Name" $input.Name
+                                "PrintName" true
+                                "Type" $input.Type
+                                "Optional" $input.Optional
+                                "TypeMap" $typeMap
+                                "TypePrefix" $typePrefix
+                                "TypeMeta" $input.Meta
+                                "JsonTags" true
+                                "StructTags" true }}
+                            {{- end }}
+                        {{- end }}
+                        }
+
+                        func {{$method.Name}}Tqk(
+                        {{- range $i, $input := $method.Inputs}}
+                            {{- if not (eq $input.Name "watch" "during")}}
+                                {{- $input.Name }} {{template "field" dict
+                                "Name" $input.Name
+                                "Type" $input.Type
+                                "Optional" $input.Optional
+                                "TypeMap" $typeMap
+                                "TypePrefix" $typePrefix
+                                "TypeMeta" $input.Meta}}, {{end}}{{ end }}) tq.TanstackQueryKey[{{$method.Name}}Args] {
+                        args := {{$method.Name}}Args{
+                        {{- range $i, $input := $method.Inputs}}
+                            {{- if not (eq $input.Name "watch" "during")}}{{$input.Name | firstLetterToUpper}}: {{$input.Name}}, {{ end }}
+                        {{- end }}
+                        }
+
+                        rv := tq.TanstackQueryKey[{{$method.Name}}Args]{
+                        Verb: {{$method.Name}}Verb,
+                        Args: &args,
+                        }
+                        return rv
+                        }
+
+                        {{- if gt (len $method.Outputs) 0 }}
+                            {{- $penultix := sub (len $method.Inputs) 2}}
+                            {{- $isDuringSpecified := and (ge $penultix 0)
+                            (eq "during" (index $method.Inputs $penultix).Name)}}
+
+                            func (s *{{$service.Name | firstLetterToLower}}) {{$method.Name}}(ctx context.Context,
+                            {{- range $i, $input := $method.Inputs}}
+                                {{- $input.Name}} {{template "field" dict
+                                "Name" $input.Name
+                                "Type" $input.Type
+                                "Optional" $input.Optional
+                                "TypeMap" $typeMap
+                                "TypePrefix" $typePrefix
+                                "TypeMeta" $input.Meta}}, {{end}}) (
+                            {{- range $oix, $output := $method.Outputs}}
+                                {{- template "field" dict
+                                "Name" $output.Name
+                                "Type" $output.Type
+                                "Optional" $output.Optional
+                                "TypeMap" $typeMap
+                                "TypePrefix" $typePrefix
+                                "TypeMeta" $output.Meta}}, {{end}} error) {
+                            {{- $output := index $method.Outputs 0}}
+                            var rv {{template "field" dict
+                            "Name" $output.Name
+                            "Type" $output.Type
+                            "Optional" $output.Optional
+                            "TypeMap" $typeMap
+                            "TypePrefix" $typePrefix
+                            "TypeMeta" $output.Meta}}
+                            var err error
+                            rv, err = s.{{$method.Name}}Snapshot(ctx,
+                            {{- range $i, $input := $method.Inputs}}{{if ne "watch" $input.Name}}{{$input.Name}}, {{end}}{{end}})
+                            if pgxx.IsNoRows(err) {
+                            err = nil
+                            }
+                            if err != nil {
+                            return rv, err
+                            }
+
+                            if watch {{if $isDuringSpecified}}&& during.DuringSpan.WantsUpdates(){{end}} {
+                            exchange := TqkExchange({{$method.Name}}Tqk(
+                            {{- range $i, $input := $method.Inputs}}
+                                {{- if not (eq $input.Name "watch" "during")}}
+                                    {{- $input.Name }}, {{end}}{{end}}))
+                            err = s.SubscribeMe(ctx, exchange)
+                            if err != nil {
+                            s.log.Error().Err(err).Str("exchange", string(exchange)).Msg("subscribing")
+                            }
+                            }
+
+                            return rv, err
+                            }
+
+                            func (s *{{$service.Name | firstLetterToLower}}) Ignore{{$method.Name}}(ctx context.Context,
+                            {{- range $i, $input := $method.Inputs}}
+                                {{- if not (eq $input.Name "watch" "during")}}
+                                    {{- $input.Name }} {{template "field" dict
+                                    "Name" $input.Name
+                                    "Type" $input.Type
+                                    "Optional" $input.Optional
+                                    "TypeMap" $typeMap
+                                    "TypePrefix" $typePrefix
+                                    "TypeMeta" $input.Meta}}, {{end}}{{end}}) error {
+                            rv := s.UnsubscribeMe(ctx, TqkExchange({{$method.Name}}Tqk(
+                            {{- range $i, $input := $method.Inputs}}
+                                {{- if not (eq $input.Name "watch" "during")}}
+                                    {{- $input.Name }}, {{end}}{{end}})))
+                            return rv
+                            }
+                        {{end}}
+                    {{- end }}
+                {{- end }}
+            {{- end}}
+        {{- end}}
+
+    {{- end }}
+{{ end }}
