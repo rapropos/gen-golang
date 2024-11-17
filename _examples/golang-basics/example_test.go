@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	client ExampleService
+	client ExampleServiceClient
 )
 
 // func TestMain()
@@ -36,6 +36,14 @@ func TestStatus(t *testing.T) {
 	resp, err := client.Status(context.Background())
 	assert.Equal(t, true, resp)
 	assert.NoError(t, err)
+}
+
+func TestVersion(t *testing.T) {
+	version, err := client.Version(context.Background())
+
+	assert.NoError(t, err)
+	assert.NotNil(t, version.ClientGenVersion)
+	assert.NotNil(t, version.ServerGenVersion)
 }
 
 func TestGetUser(t *testing.T) {

@@ -2,7 +2,6 @@ webrpc = v1             # version of webrpc schema format (ridl or json)
 
 name = example          # name of your backend app
 version = v0.0.1        # version of your schema
-              
 
 # user role
 # which defines which type of operations user can do
@@ -69,6 +68,8 @@ struct Version
   - webrpcVersion: string
   - schemaVersion: string
   - schemaHash: string
+  - clientGenVersion: GenVersions
+  - serverGenVersion: GenVersions
 
 struct ComplexType
   - meta: map<string,any>
@@ -81,6 +82,12 @@ struct ComplexType
   - mapOfUsers: map<string,User>
   - user: User
 
+struct GenVersions
+  - WebrpcGenVersion: string
+  - TmplTarget: string
+  - TmplVersion: string
+  - SchemaVersion: string
+
 error 500100 MissingArgument "missing argument"
 error 500101 InvalidUsername "invalid username"
 error 400100 MemoryFull      "system memory is full"
@@ -92,8 +99,13 @@ service ExampleService
   # Status endpoint
   #
   # gives you current status of running application
+  @internal
   - Status() => (status: bool)
   - Version() => (version: Version)
+  # Get user endpoint
+  #
+  # gives you basic info about user
+  @deprecated
   - GetUser(header: map<string,string>, userID: uint64) => (user: User)
   - FindUser(s: SearchFilter) => (name: string, user: User)
   - LogEvent(event: string)
