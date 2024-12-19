@@ -27,6 +27,7 @@
 
 const {{$baseName}}Verb = "{{$baseName}}"
 
+{{- if len $method.Inputs }}
 type {{$baseName}}Args struct {
 {{- range $i, $input := $method.Inputs }}
 {{template "field" dict
@@ -42,27 +43,29 @@ type {{$baseName}}Args struct {
 {{ end }}
 }
 
-func {{$baseName}}Tqk(
-{{- range $i, $input := $method.Inputs}}
-{{$input.Name }} {{template "field" dict
+func {{$baseName}}Tqk({{- range $i, $input := $method.Inputs}} {{$input.Name }} {{template "field" dict
         "Name" $input.Name
         "Type" $input.Type
         "Optional" $input.Optional
         "TypeMap" $typeMap
         "TypePrefix" $typePrefix
-        "TypeMeta" $input.Meta}}, {{end}}) tq.TanstackQueryKey[{{$baseName}}Args] {
+        "TypeMeta" $input.Meta}}, {{end}}) TanstackQueryKey {
 args := {{$baseName}}Args{
 {{- range $i, $input := $method.Inputs}}
 {{$input.Name | firstLetterToUpper}}: {{$input.Name}},
 {{- end }}
 }
 
-rv := tq.TanstackQueryKey[{{$baseName}}Args]{
-Verb: {{$baseName}}Verb,
-Args: &args,
-}
+rv := NewTanstackQueryKey({{$baseName}}Verb, args)
 return rv
 }
+
+var {{$baseName}}WildcardTqk = TanstackQueryKey{Verb: {{$baseName}}Verb}
+{{- else }}
+func {{$baseName}}Tqk() TanstackQueryKey {
+return TanstackQueryKey{Verb: {{$baseName}}Verb}
+}
+{{- end }}
 {{ set $tqkDone $baseName true }}
 {{- end }}
 
@@ -101,8 +104,8 @@ if err != nil {
 return rv, err
 }
 
-exchange := meshmill.TqkExchange({{$baseName}}Tqk(
-{{- range $i, $input := $method.Inputs}}{{- $input.Name }}, {{end}}))
+exchange := {{$baseName}}Tqk(
+{{- range $i, $input := $method.Inputs}}{{- $input.Name }}, {{end}}).String()
 err = s.SubscribeMe(ctx, exchange)
 if err != nil {
 s.Logger.Error().Err(err).Str("exchange", string(exchange)).Msg("subscribing")
@@ -120,8 +123,8 @@ func (s *{{$service.Name | firstLetterToLower}}) Ignore{{$baseName}}(ctx context
 "TypeMap" $typeMap
 "TypePrefix" $typePrefix
 "TypeMeta" $input.Meta}}, {{end}}) error {
-rv := s.UnsubscribeMe(ctx, meshmill.TqkExchange({{$baseName}}Tqk(
-{{- range $i, $input := $method.Inputs}}{{- $input.Name }}, {{end}})))
+rv := s.UnsubscribeMe(ctx, {{$baseName}}Tqk(
+{{- range $i, $input := $method.Inputs}}{{- $input.Name }}, {{end}}).String())
 return rv
 }
 {{- end }}
