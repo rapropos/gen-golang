@@ -68,7 +68,7 @@ import (
 {{- $imports := dict -}}
 
 {{- if $opts.tqk }}
-	{{- set $imports "gitlab.com/kingbasura/zrpc/tq" "" }}
+	{{- set $imports "github.com/jackc/pgx/v5" "" }}
 {{- end -}}
 
 {{- if eq $opts.json "stdlib" -}}

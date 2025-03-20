@@ -17,6 +17,10 @@
 
 // TQK
 
+func IsNoRows(err error) bool {
+return errors.Is(err, pgx.ErrNoRows) || errors.Is(err, sql.ErrNoRows)
+}
+
 {{- range $_, $method := $service.Methods}}
 {{- if hasPrefix $method.Name "Ignore"}}{{else}}
 {{- $baseName := ternary (hasPrefix $method.Name "Watch") (trimPrefix $method.Name "Watch")
@@ -97,7 +101,7 @@ var rv {{template "field" dict
     "TypeMeta" $output.Meta}}
 var err error
 rv, err = s.Peek{{$baseName}}(ctx, {{- range $i, $input := $method.Inputs}}{{$input.Name}}, {{end}})
-if pgxx.IsNoRows(err) {
+if IsNoRows(err) {
 err = nil
 }
 if err != nil {
