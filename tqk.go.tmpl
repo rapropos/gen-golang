@@ -117,20 +117,6 @@ s.Logger.Error().Err(err).Str("exchange", string(exchange)).Msg("subscribing")
 
 return rv, err
 }
-
-func (s *{{$service.Name | firstLetterToLower}}) Ignore{{$baseName}}(ctx context.Context,
-{{- range $i, $input := $method.Inputs}}
-{{- $input.Name }} {{template "field" dict
-"Name" $input.Name
-"Type" $input.Type
-"Optional" $input.Optional
-"TypeMap" $typeMap
-"TypePrefix" $typePrefix
-"TypeMeta" $input.Meta}}, {{end}}) error {
-rv := s.UnsubscribeMe(ctx, {{$baseName}}Tqk(
-{{- range $i, $input := $method.Inputs}}{{- $input.Name }}, {{end}}).String())
-return rv
-}
 {{- end }}
 {{- end }}
 {{- end }}
