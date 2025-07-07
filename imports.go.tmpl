@@ -8,6 +8,7 @@
 {{- set $stdlibImports "errors" "" -}}
 {{- set $stdlibImports "fmt" "" -}}
 {{- set $stdlibImports "net/http" "" -}}
+{{- set $stdlibImports "strings" "" -}}
 
 {{- if eq $opts.json "stdlib" -}}
 	{{- set $stdlibImports "encoding/json" "" -}}
@@ -24,7 +25,6 @@
 {{- end -}}
 
 {{- if $opts.server }}
-	{{- set $stdlibImports "strings" "" -}}
 	{{- set $stdlibImports "io" "" -}}
 
 	{{- if $opts.fixEmptyArrays }}
@@ -74,10 +74,11 @@ import (
 {{- if eq $opts.json "stdlib" -}}
 	{{- /* Already imported in the stdlib section. */ -}}
 {{- else if eq $opts.json "jsoniter" -}}
-	{{- set $imports "github.com/json-iterator/go" "jsoniter" -}}
+	{{- set $imports "github.com/json-iterator/go" "" -}}
+{{- else if eq $opts.json "sonic" -}}
+	{{- set $imports "github.com/bytedance/sonic" "" -}}
 {{- else -}}
-	{{- stderrPrintf "unsupported -json=%s" $opts.json -}}
-	{{- exit 1 -}}
+	{{- set $imports $opts.json "json" -}}
 {{- end -}}
 
 {{- if ne $opts.importTypesFrom "" }}
@@ -110,7 +111,22 @@ import (
 
 {{- if eq $opts.json "jsoniter" }}
 
-var json = jsoniter.ConfigCompatibleWithStandardLibrary
+// Opinionated configuration for -json=jsoniter encoding.
+// Reference: https://github.com/json-iterator/go/blob/master/config.go
+var jsonCfg = jsoniter.Config{
+	ValidateJsonRawMessage: true,
+}.Froze()
+
+{{- else if eq $opts.json "sonic" }}
+
+// Opinionated configuration for -json=sonic encoding.
+// Reference: https://github.com/bytedance/sonic/blob/main/api.go
+var jsonCfg = sonic.Config{
+    NoNullSliceOrMap: true,        // Encode nil slices/maps as '[]'/'{}' instead of 'null' to prevent runtime issues in JavaScript.
+    NoValidateJSONMarshaler: true, // Skip validation of JSON output from types implementing json.Marshaler to enhance performance.
+    NoValidateJSONSkip: true,      // Bypass validation when skipping over JSON values during decoding, improving efficiency.
+}.Froze()
+
 {{- end -}}
 
 {{- end -}}
