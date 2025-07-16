@@ -11,7 +11,7 @@
 {{- set $opts "fixEmptyArrays" (ternary (in .Opts.fixEmptyArrays "" "true") true false) -}}
 {{- set $opts "errorStackTrace" (ternary (in .Opts.errorStackTrace "" "true") true false) -}}
 {{- set $opts "webrpcHeader" (ternary (eq (default .Opts.webrpcHeader "true") "false") false true) -}}
-{{- set $opts "tqk" (ternary (in .Opts.tqk "" "true") true false) -}}
+{{- set $opts "tq" (ternary (in .Opts.tq "" "true") true false) -}}
 
 {{- $typePrefix := (last (split "/" $opts.importTypesFrom)) -}}
 {{- if ne $typePrefix "" -}}
@@ -172,8 +172,8 @@ func parseWebrpcGenVersions(header string) (*WebrpcGenVersions, error) {
 {{ template "client" dict "Services" .Services "TypeMap" $typeMap "Json" $json "Opts" $opts "TypePrefix" $typePrefix }}
 {{ end -}}
 
-{{ if $opts.tqk }}
-{{ template "tqk" dict
+{{ if $opts.tq }}
+{{ template "tq" dict
     "Services" .Services
     "TypeMap" $typeMap
     "TypePrefix" $typePrefix
