@@ -299,71 +299,6 @@ type GetArticleResponse struct {
 	Content *string `json:"content,omitempty"`
 }
 
-var methods = map[string]method{
-	"/rpc/Example/Ping": {
-		name:        "Ping",
-		service:     "Example",
-		annotations: map[string]string{},
-	},
-	"/rpc/Example/Status": {
-		name:        "Status",
-		service:     "Example",
-		annotations: map[string]string{"internal": ""},
-	},
-	"/rpc/Example/Version": {
-		name:        "Version",
-		service:     "Example",
-		annotations: map[string]string{},
-	},
-	"/rpc/Example/GetUser": {
-		name:        "GetUser",
-		service:     "Example",
-		annotations: map[string]string{"deprecated": ""},
-	},
-	"/rpc/Example/FindUser": {
-		name:        "FindUser",
-		service:     "Example",
-		annotations: map[string]string{},
-	},
-	"/rpc/Example/LogEvent": {
-		name:        "LogEvent",
-		service:     "Example",
-		annotations: map[string]string{},
-	},
-	"/rpc/Example/GetArticle": {
-		name:        "GetArticle",
-		service:     "Example",
-		annotations: map[string]string{},
-	},
-	"/rpc/Example/StreamNewArticles": {
-		name:        "StreamNewArticles",
-		service:     "Example",
-		annotations: map[string]string{},
-	},
-}
-
-func WebrpcMethods() map[string]method {
-	res := make(map[string]method, len(methods))
-	for k, v := range methods {
-		res[k] = v
-	}
-
-	return res
-}
-
-var WebRPCServices = map[string][]string{
-	"Example": {
-		"Ping",
-		"Status",
-		"Version",
-		"GetUser",
-		"FindUser",
-		"LogEvent",
-		"GetArticle",
-		"StreamNewArticles",
-	},
-}
-
 //
 // Client
 //
@@ -994,6 +929,86 @@ func RespondWithError(w http.ResponseWriter, err error) {
 	w.Write(respBody)
 }
 
+type method struct {
+	name        string
+	service     string
+	annotations map[string]string
+}
+
+func (m *method) Name() string                   { return m.name }
+func (m *method) Service() string                { return m.service }
+func (m *method) Annotations() map[string]string { return m.annotations }
+
+var methods = map[string]*method{
+	"/rpc/Example/Ping": {
+		name:        "Ping",
+		service:     "Example",
+		annotations: map[string]string{},
+	},
+	"/rpc/Example/Status": {
+		name:        "Status",
+		service:     "Example",
+		annotations: map[string]string{"internal": ""},
+	},
+	"/rpc/Example/Version": {
+		name:        "Version",
+		service:     "Example",
+		annotations: map[string]string{},
+	},
+	"/rpc/Example/GetUser": {
+		name:        "GetUser",
+		service:     "Example",
+		annotations: map[string]string{"deprecated": ""},
+	},
+	"/rpc/Example/FindUser": {
+		name:        "FindUser",
+		service:     "Example",
+		annotations: map[string]string{},
+	},
+	"/rpc/Example/LogEvent": {
+		name:        "LogEvent",
+		service:     "Example",
+		annotations: map[string]string{},
+	},
+	"/rpc/Example/GetArticle": {
+		name:        "GetArticle",
+		service:     "Example",
+		annotations: map[string]string{},
+	},
+	"/rpc/Example/StreamNewArticles": {
+		name:        "StreamNewArticles",
+		service:     "Example",
+		annotations: map[string]string{},
+	},
+}
+
+func MethodCtx(ctx context.Context) (*method, bool) {
+	req := RequestFromContext(ctx)
+	if req == nil {
+		return nil, false
+	}
+
+	m, ok := methods[req.URL.Path]
+	return m, ok
+}
+
+func WebrpcMethods() map[string]*method {
+	return methods
+}
+
+var WebRPCServices = map[string][]string{
+	"Example": {
+		"Ping",
+		"Status",
+		"Version",
+		"GetUser",
+		"FindUser",
+		"LogEvent",
+		"GetArticle",
+		"StreamNewArticles",
+	},
+}
+
 //
 // Client helpers
 //
@@ -1120,29 +1135,6 @@ func HTTPRequestHeaders(ctx context.Context) (http.Header, bool) {
 // Webrpc helpers
 //
 
-type method struct {
-	name        string
-	service     string
-	annotations map[string]string
-}
-
-func (m method) Name() string {
-	return m.name
-}
-
-func (m method) Service() string {
-	return m.service
-}
-
-func (m method) Annotations() map[string]string {
-	res := make(map[string]string, len(m.annotations))
-	for k, v := range m.annotations {
-		res[k] = v
-	}
-
-	return res
-}
-
 type contextKey struct {
 	name string
 }
@@ -1152,11 +1144,14 @@ func (k *contextKey) String() string {
 }
 
 var (
-	HTTPClientRequestHeadersCtxKey = &contextKey{"HTTPClientRequestHeaders"} // client
-	HTTPResponseWriterCtxKey       = &contextKey{"HTTPResponseWriter"}       // server
-	HTTPRequestCtxKey              = &contextKey{"HTTPRequest"}              // server
-	ServiceNameCtxKey              = &contextKey{"ServiceName"}              // server
-	MethodNameCtxKey               = &contextKey{"MethodName"}               // server
+	HTTPClientRequestHeadersCtxKey = &contextKey{"HTTPClientRequestHeaders"}
+)
+
+var (
+	HTTPResponseWriterCtxKey = &contextKey{"HTTPResponseWriter"}
+	MethodNameCtxKey         = &contextKey{"MethodName"}
+	HTTPRequestCtxKey        = &contextKey{"HTTPRequest"}
+	ServiceNameCtxKey        = &contextKey{"ServiceName"}
 )
 
 func ServiceNameFromContext(ctx context.Context) string {
@@ -1172,20 +1167,6 @@ func MethodNameFromContext(ctx context.Context) string {
 func RequestFromContext(ctx context.Context) *http.Request {
 	r, _ := ctx.Value(HTTPRequestCtxKey).(*http.Request)
 	return r
-}
-
-func MethodCtx(ctx context.Context) (method, bool) {
-	req := RequestFromContext(ctx)
-	if req == nil {
-		return method{}, false
-	}
-
-	m, ok := methods[req.URL.Path]
-	if !ok {
-		return method{}, false
-	}
-
-	return m, true
 }
 
 // PtrTo is a useful helper when constructing values for optional fields.
@@ -1275,10 +1256,6 @@ var (
 	ErrUnauthorized    = WebRPCError{Code: 400200, Name: "Unauthorized", Message: "unauthorized", HTTPStatus: 401}
 	ErrUserNotFound    = WebRPCError{Code: 400300, Name: "UserNotFound", Message: "user not found", HTTPStatus: 400}
 )
-
-//
-// Webrpc
-//
 
 const WebrpcHeader = "Webrpc"
 
