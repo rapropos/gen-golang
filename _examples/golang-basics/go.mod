@@ -2,8 +2,6 @@ module golang-basics
 
 go 1.23.12
 
-// replace github.com/webrpc/webrpc => ../../../webrpc
-
 toolchain go1.24.0
 
 require (
@@ -22,7 +20,7 @@ require (
 	github.com/ProtonMail/go-crypto v1.3.0 // indirect
 	github.com/bytedance/gopkg v0.1.3 // indirect
 	github.com/bytedance/sonic/loader v0.3.0 // indirect
-	github.com/cloudflare/circl v1.6.1 // indirect
+	github.com/cloudflare/circl v1.6.3 // indirect
 	github.com/cloudwego/base64x v0.1.6 // indirect
 	github.com/cyphar/filepath-securejoin v0.6.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
@@ -52,13 +50,13 @@ require (
 	github.com/skeema/knownhosts v1.3.1 // indirect
 	github.com/spf13/cast v1.10.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
-	github.com/webrpc/gen-dart v0.1.1 // indirect
-	github.com/webrpc/gen-golang v0.24.0 // indirect
-	github.com/webrpc/gen-javascript v0.13.0 // indirect
-	github.com/webrpc/gen-kotlin v0.1.0 // indirect
-	github.com/webrpc/gen-openapi v0.17.1 // indirect
-	github.com/webrpc/gen-typescript v0.23.1 // indirect
-	github.com/webrpc/webrpc v0.32.3-0.20260210160745-70233bc06d55 // indirect
+	github.com/webrpc/gen-dart v0.2.0 // indirect
+	github.com/webrpc/gen-golang v0.27.0 // indirect
+	github.com/webrpc/gen-javascript v0.14.0 // indirect
+	github.com/webrpc/gen-kotlin v0.2.0 // indirect
+	github.com/webrpc/gen-openapi v0.18.0 // indirect
+	github.com/webrpc/gen-typescript v0.25.0 // indirect
+	github.com/webrpc/webrpc v0.36.2-0.20260321072159-3267f049abfb // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	golang.org/x/arch v0.1.0 // indirect
 	golang.org/x/crypto v0.41.0 // indirect
