@@ -67,8 +67,9 @@ import (
 {{- /* Print custom type imports. */ -}}
 {{- $imports := dict -}}
 
-{{- if $opts.tqk }}
+{{- if $opts.tq }}
 	{{- set $imports "github.com/jackc/pgx/v5" "" }}
+	{{- set $imports "github.com/jackc/pgx/v5/pgtype" "" }}
 {{- end -}}
 
 {{- if eq $opts.json "stdlib" -}}
