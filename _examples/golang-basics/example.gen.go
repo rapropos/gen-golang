@@ -423,13 +423,7 @@ func NewExampleClient(addr string, client HTTPClient) ExampleClient {
 }
 
 func (c *exampleClient) Ping(ctx context.Context) error {
-	resp, err := doHTTPRequest(ctx, c.client, c.urls[0], nil, nil)
-	if resp != nil {
-		cerr := resp.Body.Close()
-		if err == nil && cerr != nil {
-			err = ErrWebrpcRequestFailed.WithCausef("failed to close response body: %w", cerr)
-		}
-	}
+	err := doHTTPRequest(ctx, c.client, c.urls[0], nil, nil)
 
 	return err
 }
@@ -439,13 +433,7 @@ func (c *exampleClient) Status(ctx context.Context) (bool, error) {
 		Ret0 bool `json:"status"`
 	}{}
 
-	resp, err := doHTTPRequest(ctx, c.client, c.urls[1], nil, &out)
-	if resp != nil {
-		cerr := resp.Body.Close()
-		if err == nil && cerr != nil {
-			err = ErrWebrpcRequestFailed.WithCausef("failed to close response body: %w", cerr)
-		}
-	}
+	err := doHTTPRequest(ctx, c.client, c.urls[1], nil, &out)
 
 	return out.Ret0, err
 }
@@ -455,13 +443,7 @@ func (c *exampleClient) Version(ctx context.Context) (*Version, error) {
 		Ret0 *Version `json:"version"`
 	}{}
 
-	resp, err := doHTTPRequest(ctx, c.client, c.urls[2], nil, &out)
-	if resp != nil {
-		cerr := resp.Body.Close()
-		if err == nil && cerr != nil {
-			err = ErrWebrpcRequestFailed.WithCausef("failed to close response body: %w", cerr)
-		}
-	}
+	err := doHTTPRequest(ctx, c.client, c.urls[2], nil, &out)
 
 	return out.Ret0, err
 }
@@ -472,17 +454,12 @@ func (c *exampleClient) GetUser(ctx context.Context, header map[string]string, t
 		Arg1 string            `json:"type"`
 		Arg2 uint64            `json:"userID"`
 	}{header, type_, userID}
+
 	out := struct {
 		Ret0 *User `json:"user"`
 	}{}
 
-	resp, err := doHTTPRequest(ctx, c.client, c.urls[3], in, &out)
-	if resp != nil {
-		cerr := resp.Body.Close()
-		if err == nil && cerr != nil {
-			err = ErrWebrpcRequestFailed.WithCausef("failed to close response body: %w", cerr)
-		}
-	}
+	err := doHTTPRequest(ctx, c.client, c.urls[3], in, &out)
 
 	return out.Ret0, err
 }
@@ -491,18 +468,13 @@ func (c *exampleClient) FindUser(ctx context.Context, s *SearchFilter) (string, 
 	in := struct {
 		Arg0 *SearchFilter `json:"s"`
 	}{s}
+
 	out := struct {
 		Ret0 string `json:"name"`
 		Ret1 *User  `json:"user"`
 	}{}
 
-	resp, err := doHTTPRequest(ctx, c.client, c.urls[4], in, &out)
-	if resp != nil {
-		cerr := resp.Body.Close()
-		if err == nil && cerr != nil {
-			err = ErrWebrpcRequestFailed.WithCausef("failed to close response body: %w", cerr)
-		}
-	}
+	err := doHTTPRequest(ctx, c.client, c.urls[4], in, &out)
 
 	return out.Ret0, out.Ret1, err
 }
@@ -512,35 +484,19 @@ func (c *exampleClient) LogEvent(ctx context.Context, event string) error {
 		Arg0 string `json:"event"`
 	}{event}
 
-	resp, err := doHTTPRequest(ctx, c.client, c.urls[5], in, nil)
-	if resp != nil {
-		cerr := resp.Body.Close()
-		if err == nil && cerr != nil {
-			err = ErrWebrpcRequestFailed.WithCausef("failed to close response body: %w", cerr)
-		}
-	}
+	err := doHTTPRequest(ctx, c.client, c.urls[5], in, nil)
 
 	return err
 }
 
 func (c *exampleClient) GetArticle(ctx context.Context, getArticleRequest GetArticleRequest) (*GetArticleResponse, error) {
-	out := struct {
-		Ret0 *GetArticleResponse
-	}{}
-
-	resp, err := doHTTPRequest(ctx, c.client, c.urls[6], getArticleRequest, &out.Ret0)
-	if resp != nil {
-		cerr := resp.Body.Close()
-		if err == nil && cerr != nil {
-			err = ErrWebrpcRequestFailed.WithCausef("failed to close response body: %w", cerr)
-		}
-	}
-
-	return out.Ret0, err
+	var out *GetArticleResponse
+	err := doHTTPRequest(ctx, c.client, c.urls[6], getArticleRequest, &out)
+	return out, err
 }
 
 func (c *exampleClient) StreamNewArticles(ctx context.Context, streamNewArticlesRequest StreamNewArticlesRequest) (StreamNewArticlesStreamReader, error) {
-	resp, err := doHTTPRequest(ctx, c.client, c.urls[7], streamNewArticlesRequest, nil)
+	resp, err := doHTTPRequestRaw(ctx, c.client, c.urls[7], streamNewArticlesRequest, nil)
 	if err != nil {
 		if resp != nil {
 			resp.Body.Close()
@@ -683,7 +639,7 @@ func (s *exampleService) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case "/v1/Example/LogEvent":
 		handler = s.serveLogEventJSON
 	case "/v1/Example/GetArticle":
-		handler = s.serveGetArticleJSON
+		handler = succinctHandler("GetArticle", s.ExampleServer.GetArticle, s.sendErrorJSON)
 	case "/v1/Example/StreamNewArticles":
 		handler = s.serveStreamNewArticlesJSONStream
 	default:
@@ -743,7 +699,6 @@ func (s *exampleService) servePingJSON(ctx context.Context, w http.ResponseWrite
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("{}"))
 }
-
 func (s *exampleService) serveStatusJSON(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	ctx = context.WithValue(ctx, MethodNameCtxKey, "Status")
 
@@ -771,7 +726,6 @@ func (s *exampleService) serveStatusJSON(ctx context.Context, w http.ResponseWri
 	w.WriteHeader(http.StatusOK)
 	w.Write(respBody)
 }
-
 func (s *exampleService) serveVersionJSON(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	ctx = context.WithValue(ctx, MethodNameCtxKey, "Version")
 
@@ -799,7 +753,6 @@ func (s *exampleService) serveVersionJSON(ctx context.Context, w http.ResponseWr
 	w.WriteHeader(http.StatusOK)
 	w.Write(respBody)
 }
-
 func (s *exampleService) serveGetUserJSON(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	ctx = context.WithValue(ctx, MethodNameCtxKey, "GetUser")
 
@@ -844,7 +797,6 @@ func (s *exampleService) serveGetUserJSON(ctx context.Context, w http.ResponseWr
 	w.WriteHeader(http.StatusOK)
 	w.Write(respBody)
 }
-
 func (s *exampleService) serveFindUserJSON(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	ctx = context.WithValue(ctx, MethodNameCtxKey, "FindUser")
 
@@ -888,7 +840,6 @@ func (s *exampleService) serveFindUserJSON(ctx context.Context, w http.ResponseW
 	w.WriteHeader(http.StatusOK)
 	w.Write(respBody)
 }
-
 func (s *exampleService) serveLogEventJSON(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	ctx = context.WithValue(ctx, MethodNameCtxKey, "LogEvent")
 
@@ -922,45 +873,6 @@ func (s *exampleService) serveLogEventJSON(ctx context.Context, w http.ResponseW
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("{}"))
 }
-
-func (s *exampleService) serveGetArticleJSON(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	ctx = context.WithValue(ctx, MethodNameCtxKey, "GetArticle")
-
-	reqBody, err := io.ReadAll(r.Body)
-	if err != nil {
-		s.sendErrorJSON(w, r, ErrWebrpcBadRequest.WithCausef("failed to read request data: %w", err))
-		return
-	}
-	defer r.Body.Close()
-
-	var reqPayload GetArticleRequest
-	if err := jsonCfg.Unmarshal(reqBody, &reqPayload); err != nil {
-		s.sendErrorJSON(w, r, ErrWebrpcBadRequest.WithCausef("failed to unmarshal request data: %w", err))
-		return
-	}
-
-	// Call service method implementation.
-	respPayload, err := s.ExampleServer.GetArticle(ctx, reqPayload)
-	if err != nil {
-		rpcErr, ok := err.(WebRPCError)
-		if !ok {
-			rpcErr = ErrWebrpcEndpoint.WithCause(err)
-		}
-		s.sendErrorJSON(w, r, rpcErr)
-		return
-	}
-
-	respBody, err := jsonCfg.Marshal(respPayload)
-	if err != nil {
-		s.sendErrorJSON(w, r, ErrWebrpcBadResponse.WithCausef("failed to marshal json response: %w", err))
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(respBody)
-}
-
 func (s *exampleService) serveStreamNewArticlesJSONStream(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	ctx = context.WithValue(ctx, MethodNameCtxKey, "StreamNewArticles")
 
@@ -1048,6 +960,47 @@ func RespondWithError(w http.ResponseWriter, err error) {
 
 	respBody, _ := jsonCfg.Marshal(rpcErr)
 	w.Write(respBody)
+}
+
+type sendErrorFunc func(w http.ResponseWriter, r *http.Request, rpcErr WebRPCError)
+
+func succinctHandler[I any, O any](method string, fn func(context.Context, I) (O, error), sendError sendErrorFunc) func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	return func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+		ctx = context.WithValue(ctx, MethodNameCtxKey, method)
+
+		reqBody, err := io.ReadAll(r.Body)
+		if err != nil {
+			sendError(w, r, ErrWebrpcBadRequest.WithCausef("failed to read request data: %w", err))
+			return
+		}
+		defer r.Body.Close()
+
+		var reqPayload I
+		if err := jsonCfg.Unmarshal(reqBody, &reqPayload); err != nil {
+			sendError(w, r, ErrWebrpcBadRequest.WithCausef("failed to unmarshal request data: %w", err))
+			return
+		}
+
+		respPayload, err := fn(ctx, reqPayload)
+		if err != nil {
+			rpcErr, ok := err.(WebRPCError)
+			if !ok {
+				rpcErr = ErrWebrpcEndpoint.WithCause(err)
+			}
+			sendError(w, r, rpcErr)
+			return
+		}
+
+		respBody, err := jsonCfg.Marshal(respPayload)
+		if err != nil {
+			sendError(w, r, ErrWebrpcBadResponse.WithCausef("failed to marshal json response: %w", err))
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write(respBody)
+	}
 }
 
 type method struct {
@@ -1175,8 +1128,10 @@ func newRequest(ctx context.Context, url string, reqBody io.Reader, contentType 
 	return req, nil
 }
 
-// doHTTPRequest is common code to make a request to the remote service.
-func doHTTPRequest(ctx context.Context, client HTTPClient, url string, in, out interface{}) (*http.Response, error) {
+// doHTTPRequestRaw is common code to make a request to the remote service.
+// It returns the open *http.Response; the caller is responsible for closing
+// its body. Unary methods should use doHTTPRequest, which closes it for them.
+func doHTTPRequestRaw(ctx context.Context, client HTTPClient, url string, in, out interface{}) (*http.Response, error) {
 	reqBody, err := jsonCfg.Marshal(in)
 	if err != nil {
 		return nil, ErrWebrpcRequestFailed.WithCausef("failed to marshal JSON body: %w", err)
@@ -1250,6 +1205,20 @@ func WithHTTPRequestHeaders(ctx context.Context, h http.Header) (context.Context
 func HTTPRequestHeaders(ctx context.Context) (http.Header, bool) {
 	h, ok := ctx.Value(HTTPClientRequestHeadersCtxKey).(http.Header)
 	return h, ok
+}
+
+// doHTTPRequest makes a request to the remote service and closes the response
+// body. It is used by all unary methods; streaming methods use
+// doHTTPRequestRaw directly, since they read from the response body.
+func doHTTPRequest(ctx context.Context, client HTTPClient, url string, in, out interface{}) error {
+	resp, err := doHTTPRequestRaw(ctx, client, url, in, out)
+	if resp != nil {
+		cerr := resp.Body.Close()
+		if err == nil && cerr != nil {
+			err = ErrWebrpcRequestFailed.WithCausef("failed to close response body: %w", cerr)
+		}
+	}
+	return err
 }
 
 //
