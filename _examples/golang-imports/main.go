@@ -19,6 +19,10 @@ func main() {
 }
 
 func startServer() error {
+	return http.ListenAndServe(":4242", newHandler())
+}
+
+func newHandler() http.Handler {
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
 	r.Use(middleware.Logger)
@@ -31,7 +35,7 @@ func startServer() error {
 	webrpcHandler := NewExampleAPIServer(&ExampleRPC{})
 	r.Handle("/*", webrpcHandler)
 
-	return http.ListenAndServe(":4242", r)
+	return r
 }
 
 type ExampleRPC struct {
@@ -50,4 +54,12 @@ func (s *ExampleRPC) GetUsers(ctx context.Context) ([]*User, Location, error) {
 	return []*User{
 		{Username: "pk", Age: 99},
 	}, loc, nil
+}
+
+func (s *ExampleRPC) GetUser(ctx context.Context, req GetUserRequest) (*GetUserResponse, error) {
+	return &GetUserResponse{User: &User{Username: req.Username, Age: 30}}, nil
+}
+
+func (s *ExampleRPC) ListUsers(ctx context.Context, req ListUsersRequest) (*ListUsersResponse, error) {
+	return &ListUsersResponse{Users: []*User{{Username: "pk", Age: 99}}}, nil
 }

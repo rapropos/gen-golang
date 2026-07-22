@@ -1,2 +1,6 @@
+# Compiled binaries produced by building/testing the example programs
+# (each is named after its module directory).
+/_examples/golang-basics/golang-basics
+/_examples/golang-imports/golang-imports
 .idea
 *.sum
