@@ -617,6 +617,8 @@ func NewExampleServer(svc ExampleServer, options ...*Options) *exampleService {
 	return server
 }
 
+func (s *exampleService) Methods() []Method { return methodsFor(ServiceExample, s) }
+
 func (s *exampleService) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		// In case of a panic, serve a HTTP 500 error and then panic.
@@ -1117,6 +1119,23 @@ var WebRPCServices = map[string][]string{
 		"GetArticle",
 		"StreamNewArticles",
 	},
+}
+
+// Method pairs an RPC method's metadata with the server that handles it.
+// Handler is the server itself, which dispatches by request path.
+type Method struct {
+	*method
+	Path    string
+	Handler http.Handler
+}
+
+// methodsFor binds every method of service to the handler that serves it.
+func methodsFor(service Service, handler http.Handler) []Method {
+	var out []Method
+	for path, m := range WebrpcMethods(service) {
+		out = append(out, Method{method: m, Path: path, Handler: handler})
+	}
+	return out
 }
 
 //
