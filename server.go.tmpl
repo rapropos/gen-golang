@@ -54,6 +54,8 @@ func New{{firstLetterToUpper $service.Name}}Server(svc {{$typePrefix}}{{.Name}}S
 	return server
 }
 
+func (s *{{$serviceName}}) Methods() []Method { return methodsFor(Service{{$service.Name}}, s) }
+
 func (s *{{$serviceName}}) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		// In case of a panic, serve a HTTP 500 error and then panic.
