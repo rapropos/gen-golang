@@ -198,16 +198,16 @@ func (c *exampleAPIClient) ListUsers(ctx context.Context, listUsersRequest ListU
 	return out, err
 }
 
-// Clients bundles one client per service, all sharing the same address and
-// HTTP client. Construct them once with NewClients and use the fields you
-// need. Skip it when services need different transports (e.g. separate admin
-// vs user credentials).
-type Clients struct {
+// Client is a unified client for every service of this API, all sharing the
+// same address and HTTP client: c.Users.Get(ctx, …). Skip it when services
+// need different transports (e.g. separate admin vs user credentials) — the
+// per-service constructors stay.
+type Client struct {
 	ExampleAPI ExampleAPIClient
 }
 
-func NewClients(addr string, client HTTPClient) Clients {
-	return Clients{
+func NewClient(addr string, client HTTPClient) *Client {
+	return &Client{
 		ExampleAPI: NewExampleAPIClient(addr, client),
 	}
 }
@@ -399,6 +399,23 @@ func (s *exampleAPIService) sendErrorJSON(w http.ResponseWriter, r *http.Request
 
 	respBody, _ := json.Marshal(rpcErr)
 	w.Write(respBody)
+}
+
+// Server bundles one handler impl per service; a nil field is not mounted.
+type Server struct {
+	ExampleAPI ExampleAPIServer
+}
+
+// Methods returns the routes of every non-nil service, for explicit per-method mounting.
+func (s Server) Methods(opts *Options) []Method {
+	var out []Method
+	appendIf := func(set bool, srv interface{ Methods() []Method }) {
+		if set {
+			out = append(out, srv.Methods()...)
+		}
+	}
+	appendIf(s.ExampleAPI != nil, NewExampleAPIServer(s.ExampleAPI, opts))
+	return out
 }
 
 func RespondWithError(w http.ResponseWriter, err error) {
